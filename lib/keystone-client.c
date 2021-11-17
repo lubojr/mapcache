@@ -1015,11 +1015,13 @@ authenticate_v3_build_token_request(keystone_context_t *context, const char *ten
 	struct json_object* auth_identity_password_user_domain = NULL;
 	struct json_object* auth_scope = NULL;
 	struct json_object* auth_scope_project = NULL;
+	struct json_object* auth_scope_project_domain = NULL;
 	struct json_object* method = NULL;
 	struct json_object* pw = NULL;
 	struct json_object* un = NULL;
 	struct json_object* domain_id = NULL;
 	struct json_object* project_id = NULL;
+	struct json_object* project_domain_id = NULL;
 
 	*body_len = 0;
 
@@ -1042,7 +1044,10 @@ authenticate_v3_build_token_request(keystone_context_t *context, const char *ten
 			},
 			"scope": {
 				"project": {
-					"id": tenant_name
+					"id": tenant_name,
+					"domain": {
+						"id": "default"
+					}
 				}
 			}
 		}
@@ -1131,6 +1136,18 @@ authenticate_v3_build_token_request(keystone_context_t *context, const char *ten
 		goto cleanup;
 	}
 	json_object_object_add(auth_scope_project, "id", project_id);
+
+	if (!(auth_scope_project_domain = json_object_new_object())) {
+		status = KSERR_ALLOC_FAILED;
+		goto cleanup;
+	}
+	json_object_object_add(auth_scope_project, "domain", auth_scope_project_domain);
+
+	if (!(project_domain_id = json_object_new_string("default"))) {
+		status = KSERR_ALLOC_FAILED;
+		goto cleanup;
+	}
+	json_object_object_add(auth_scope_project_domain, "id", project_domain_id);
 
 	/* payload does not need to be freed */
 	payload = json_object_to_json_string_ext(root, 0);
